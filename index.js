@@ -31,6 +31,7 @@ async function server() {
         
         const db = client.db("SportNest-DB");
         const sportsCollection = db.collection("sports")
+        const bookingCollection = db.collection("bookings")
 
         // All Sports Routes
         app.get('/sports', async(req, res) => {
@@ -49,6 +50,26 @@ async function server() {
             res.send(result)
         })
 
+
+        // Post Routes
+        app.post('/sports', async(req, res) => {
+            const formData = req.body;
+            // console.log("Data from client : ", formData)
+            const result = await sportsCollection.insertOne(formData);
+            res.send(result);
+        })
+        // Bookings
+        app.post('/bookings', async(req, res) => {
+            const bookingData = req.body;
+            console.log(bookingData)
+            const result = await bookingCollection.insertOne(bookingData);
+            res.send(result)
+        })
+
+        app.get('/bookings', async(req, res) => {
+            const result = await bookingCollection.find().toArray();
+            res.send(result)
+        })
 
 
         await client.db("admin").command({ ping: 1 });
