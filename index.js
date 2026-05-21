@@ -31,11 +31,79 @@ async function server() {
         const sportsCollection = db.collection("sports")
         const bookingCollection = db.collection("bookings")
 
+        const coursesCollection = db.collection("courses")
+
         // All Sports Routes
         app.get('/sports', async (req, res) => {
-            const result = await sportsCollection.find().toArray();
+            const search = req.query.search;
+            console.log("Search Text : ", search)
+
+            let result;
+
+            if (search) {
+                result = await sportsCollection.find({
+                    $or: [
+                        {
+                            title: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        },
+                        {
+                            category: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        }
+                    ]
+                }).toArray()
+            }
+            else {
+                result = await sportsCollection.find().toArray();
+            }
             res.send(result)
         })
+
+
+
+        // Test Courses data
+        app.get('/courses', async (req, res) => {
+            const search = req.query.search;
+            // const category = req.query.category;
+            console.log("search : ", search, "|",)
+
+            let result;
+
+            // Jodi search er moddhe data thake,
+            if (search) {
+                result = await coursesCollection.find({
+                    $or: [
+                        {
+                            title: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        },
+
+                        {
+                            category: {
+                                $regex: search,
+                                $options: 'i'
+                            }
+                        }
+                    ]
+                }).toArray()
+            }
+            else {
+                result = await coursesCollection.find().toArray()
+            }
+
+
+
+            res.send(result);
+        })
+
+
 
         app.get('/sports/:id', async (req, res) => {
             const id = req.params.id;
@@ -69,6 +137,26 @@ async function server() {
             res.send(result)
         })
 
+        // My Booking Filtering by session userId
+        app.get('/bookings/:userId', async (req, res) => {
+            const id = req.params.userId;
+
+            const result = await bookingCollection.find(
+                { userId: id }
+            ).toArray()
+            res.send(result);
+        })
+
+        // Cancel Booking
+        app.delete('/bookings/:bookingId', async (req, res) => {
+            const id = req.params.bookingId;
+            console.log("Cancel Booking : ", id)
+            const result = await bookingCollection.deleteOne({ _id: new ObjectId(id) })
+            console.log("Deleted item : ", result)
+            res.send(result)
+        })
+
+
         // Manage My Facilities PATCH
         app.patch('/sports', async (req, res) => {
             const id = req.headers.id;
@@ -81,6 +169,13 @@ async function server() {
                 { $set: updatedData }
             )
 
+            res.send(result)
+        })
+        // Manage My Facilities DELETE
+        app.delete('/sports', async (req, res) => {
+            const id = req.headers.id;
+            console.log(id)
+            const result = await sportsCollection.deleteOne({ _id: new ObjectId(id) })
             res.send(result)
         })
 
