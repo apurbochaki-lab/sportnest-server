@@ -5,6 +5,7 @@ const express = require('express')
 const cors = require('cors')
 const dotenv = require('dotenv')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const app = express()
 dotenv.config()
 const port = process.env.PORT || 5000;
@@ -23,6 +24,40 @@ const client = new MongoClient(uri, {
     }
 });
 
+const JWKS = createRemoteJWKSet(
+    new URL(`${process.env.NEXT_PUBLIC_CLIENT_URL}/api/auth/jwks`)
+)
+
+const verifyToken = async (req, res, next) => {
+    const tokenData = req?.headers?.authorization;
+    const token = tokenData?.split(" ")[1]
+    console.log("Token from Backend --> ", token)
+
+    // Validation
+    if (!tokenData) {
+        return res.status(401).send(
+            {
+                Authorization: false,
+                message: "You are unauthorized user to access the data!"
+            }
+        )
+    }
+    if (!token) {
+        return res.status(401).send({ message: "Unauthorized" })
+    }
+
+    // Verify Token
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+        console.log("payload from server :", payload)
+        next()
+    } catch (error) {
+        return res.status(401).send({ message: "Unauthorized", error })
+    }
+
+
+}
+
 async function server() {
     try {
         // await client.connect();
@@ -34,12 +69,13 @@ async function server() {
         const coursesCollection = db.collection("courses")
 
         // All Sports Routes
-        app.get('/sports', async (req, res) => {
+        app.get('/sports',  async (req, res) => {
             const search = req.query.search;
-            console.log("Search Text : ", search)
+            // console.log("Search Text : ", search)
 
             let result;
 
+            // Jodi search field a text thake,
             if (search) {
                 result = await sportsCollection.find({
                     $or: [
@@ -59,6 +95,7 @@ async function server() {
                 }).toArray()
             }
             else {
+                // Jodi search field a kuno text na thake,
                 result = await sportsCollection.find().toArray();
             }
             res.send(result)
@@ -105,7 +142,7 @@ async function server() {
 
 
 
-        app.get('/sports/:id', async (req, res) => {
+        app.get('/sports/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const result = await sportsCollection.findOne({ _id: new ObjectId(id) });
             res.send(result)
@@ -125,9 +162,9 @@ async function server() {
             res.send(result);
         })
         // Bookings
-        app.post('/bookings', async (req, res) => {
+        app.post('/bookings', verifyToken, async (req, res) => {
             const bookingData = req.body;
-            console.log(bookingData)
+            // console.log(bookingData)
             const result = await bookingCollection.insertOne(bookingData);
             res.send(result)
         })
