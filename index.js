@@ -31,7 +31,7 @@ const JWKS = createRemoteJWKSet(
 const verifyToken = async (req, res, next) => {
     const tokenData = req?.headers?.authorization;
     const token = tokenData?.split(" ")[1]
-    console.log("Token from Backend --> ", token)
+    console.log("Token from Backend --> 🔥", token)
 
     // Validation
     if (!tokenData) {
@@ -49,7 +49,7 @@ const verifyToken = async (req, res, next) => {
     // Verify Token
     try {
         const { payload } = await jwtVerify(token, JWKS)
-        console.log("payload from server :", payload)
+        console.log("payload from server : 🔥", payload)
         next()
     } catch (error) {
         return res.status(401).send({ message: "Unauthorized", error })
@@ -69,7 +69,7 @@ async function server() {
         const coursesCollection = db.collection("courses")
 
         // All Sports Routes
-        app.get('/sports',  async (req, res) => {
+        app.get('/sports', verifyToken, async (req, res) => {
             const search = req.query.search;
             // console.log("Search Text : ", search)
 
@@ -208,12 +208,32 @@ async function server() {
 
             res.send(result)
         })
+
         // Manage My Facilities DELETE
-        app.delete('/sports', async (req, res) => {
+        app.delete('/sports', verifyToken, async (req, res) => {
             const id = req.headers.id;
-            console.log(id)
-            const result = await sportsCollection.deleteOne({ _id: new ObjectId(id) })
-            res.send(result)
+            const currentUserEmail = req.headers.currentuser;
+            const query = { _id: new ObjectId(id) };
+
+            // Single document
+            const sport = await sportsCollection.findOne(query)
+
+            // Author validation
+            if (sport.userEmail !== currentUserEmail) {
+                return res.status(403).send({
+                    success: false,
+                    message: "You are not the Author!"
+                })
+            }
+
+            // Delete when valid author
+            const result = await sportsCollection.deleteOne(query);
+            res.send({
+                success: true,
+                message: "Item Deleted",
+                result
+            })
+
         })
 
 
