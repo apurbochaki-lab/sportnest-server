@@ -195,18 +195,33 @@ async function server() {
 
 
         // Manage My Facilities PATCH
-        app.patch('/sports', async (req, res) => {
+        app.patch('/sports', verifyToken, async (req, res) => {
             const id = req.headers.id;
+            const currentUserEmail = req.headers.currentuser;
             const updatedData = req.body;
-            console.log(id)
-            console.log(updatedData)
 
+            // When data match with both id & currentUser = Valid Author
             const result = await sportsCollection.updateOne(
-                { _id: new ObjectId(id) },
+                { _id: new ObjectId(id), userEmail: currentUserEmail },
                 { $set: updatedData }
             )
+            // console.log("result ❤️‍🩹", result)
 
-            res.send(result)
+            // If Author email not matched or doc not found
+            if (result.matchedCount === 0) {
+                return res.status(403).send({
+                    success: false,
+                    message: "You are not the Author!"
+                })
+            }
+
+            // Success response
+            res.send({
+                success: true,
+                message: "Facilities data updated",
+                result
+            })
+
         })
 
         // Manage My Facilities DELETE
