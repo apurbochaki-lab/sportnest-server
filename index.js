@@ -58,6 +58,13 @@ const verifyToken = async (req, res, next) => {
 
 }
 
+const tokenChecker = async (req, res, next) => {
+    console.log("Auth Headers : ", req?.headers)
+    const token = req?.headers?.authorization
+    console.log("Token : ", token)
+    next()
+}
+
 async function server() {
     try {
         // await client.connect();
@@ -65,11 +72,10 @@ async function server() {
         const db = client.db("SportNest-DB");
         const sportsCollection = db.collection("sports")
         const bookingCollection = db.collection("bookings")
-
         const coursesCollection = db.collection("courses")
 
         // All Sports Routes
-        app.get('/sports', verifyToken, async (req, res) => {
+        app.get('/sports', async (req, res) => {
             const search = req.query.search;
             // console.log("Search Text : ", search)
 
@@ -92,11 +98,33 @@ async function server() {
                             }
                         }
                     ]
+                }).project({
+                    title: 1,
+                    image: 1,
+                    price: 1,
+                    category: 1,
+                    duration: 1,
+                    label: 1,
+                    location: 1,
+                    rating: 1,
+                    level: 1,
+                    status: 1
                 }).toArray()
             }
             else {
                 // Jodi search field a kuno text na thake,
-                result = await sportsCollection.find().toArray();
+                result = await sportsCollection.find().project({
+                    title: 1,
+                    image: 1,
+                    price: 1,
+                    category: 1,
+                    duration: 1,
+                    label: 1,
+                    location: 1,
+                    rating: 1,
+                    level: 1,
+                    status: 1
+                }).toArray();
             }
             res.send(result)
         })
@@ -141,10 +169,16 @@ async function server() {
         })
 
 
-
+        // Book now --> Details page
         app.get('/sports/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
+
             const result = await sportsCollection.findOne({ _id: new ObjectId(id) });
+            if (!result) {
+                return res.status(404).send({
+                    message: "Facility not found"
+                });
+            }
             res.send(result)
         })
 
