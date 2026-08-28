@@ -108,7 +108,8 @@ async function server() {
                     location: 1,
                     rating: 1,
                     level: 1,
-                    status: 1
+                    status: 1,
+                    timeSlot: 1
                 }).toArray()
             }
             else {
@@ -123,13 +124,29 @@ async function server() {
                     location: 1,
                     rating: 1,
                     level: 1,
-                    status: 1
+                    status: 1,
+                    timeSlot: 1
                 }).toArray();
             }
             res.send(result)
         })
 
+        app.get("/my-facilities", verifyToken, async (req, res) => {
+            try {
+                const userEmail = req.query.userEmail;
+                if (!userEmail) return;
 
+                const result = await sportsCollection.find({ userEmail }).toArray()
+                res.json(result)
+
+            } catch (error) {
+                console.error(error || "Error when fetching my facilities")
+                res.status(500).json({
+                    success: false,
+                    message: "Internal error when fetching my facilites"
+                })
+            }
+        })
 
         // Test Courses data
         app.get('/courses', async (req, res) => {
